@@ -1,5 +1,7 @@
 # VocalSQL — Natural Language to SQL
 
+🚀 **Live:** [https://vocalsql.onrender.com/](https://vocalsql.onrender.com/)
+
 > **Production-grade** VocalSQL system powered by **LangGraph**, **RAG**, and **Groq** (free tier).
 > Convert natural language questions into accurate SQL queries with built-in self-correction, validation, and anti-hallucination layers.
 

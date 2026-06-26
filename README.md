@@ -1,6 +1,6 @@
-# DataWhisper — Natural Language to SQL
+# VocalSQL — Natural Language to SQL
 
-> **Production-grade** DataWhisper system powered by **LangGraph**, **RAG**, and **Groq** (free tier).
+> **Production-grade** VocalSQL system powered by **LangGraph**, **RAG**, and **Groq** (free tier).
 > Convert natural language questions into accurate SQL queries with built-in self-correction, validation, and anti-hallucination layers.
 
 ## ✨ Features

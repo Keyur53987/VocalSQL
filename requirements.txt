@@ -1,0 +1,29 @@
+# Core - LangGraph & LangChain
+langgraph>=0.2.0
+langchain-groq>=0.1.0
+langchain-core>=0.3.0
+
+# RAG - Vector Store
+chromadb>=0.5.0
+
+# SQL Validation
+sqlglot>=25.0.0
+
+# API Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+
+# Database
+sqlalchemy>=2.0.0
+
+# Configuration
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+
+# Templating (FastAPI static)
+jinja2>=3.1.0
+
+# Optional DB drivers:
+psycopg2-binary>=2.9.0   # PostgreSQL
+pymysql>=1.1.0            # MySQL
+# pip install aiosqlite          # Async SQLite

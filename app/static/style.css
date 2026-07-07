@@ -997,4 +997,443 @@ body {
     .query-header { flex-direction: column; gap: 8px; align-items: flex-start; }
     .sql-header { flex-direction: column; gap: 8px; align-items: flex-start; }
     .feedback-card { flex-direction: column; align-items: flex-start; }
+    .xray-top-row { flex-direction: column; }
+    .xray-gauge-container { margin-bottom: 16px; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   Confidence X-Ray Panel
+   ═══════════════════════════════════════════════════════════════ */
+
+.confidence-xray {
+    margin-bottom: 20px;
+    border: 1px solid var(--border-glass);
+    overflow: hidden;
+}
+
+.xray-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.2s;
+}
+
+.xray-header:hover {
+    background: var(--bg-card-hover);
+}
+
+.xray-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.xray-header-left h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.xray-header-left svg {
+    color: var(--accent-1);
+}
+
+.xray-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.xray-score-mini {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.xray-chevron {
+    color: var(--text-muted);
+    transition: transform 0.3s ease;
+}
+
+.xray-chevron.collapsed {
+    transform: rotate(-90deg);
+}
+
+/* Risk Badges */
+.xray-risk-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 10px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.xray-risk-badge.risk-low {
+    background: rgba(105, 240, 174, 0.15);
+    color: #2e7d32;
+    border: 1px solid rgba(105, 240, 174, 0.3);
+}
+
+.xray-risk-badge.risk-medium {
+    background: rgba(255, 215, 64, 0.15);
+    color: #e65100;
+    border: 1px solid rgba(255, 215, 64, 0.3);
+}
+
+.xray-risk-badge.risk-high {
+    background: rgba(255, 82, 82, 0.15);
+    color: #c62828;
+    border: 1px solid rgba(255, 82, 82, 0.3);
+    animation: risk-pulse 2s ease-in-out infinite;
+}
+
+@keyframes risk-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 82, 82, 0.2); }
+    50% { box-shadow: 0 0 12px 2px rgba(255, 82, 82, 0.3); }
+}
+
+/* X-Ray Body — Collapsible */
+.xray-body {
+    padding: 0 20px 20px;
+    max-height: 800px;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                padding 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.3s;
+    opacity: 1;
+}
+
+.xray-body.collapsed {
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    opacity: 0;
+}
+
+/* Top Row: Gauge + Signal Bars */
+.xray-top-row {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+/* Radial Gauge */
+.xray-gauge-container {
+    flex-shrink: 0;
+}
+
+.xray-gauge {
+    width: 120px;
+    height: 120px;
+}
+
+.gauge-bg {
+    fill: none;
+    stroke: var(--border-subtle);
+    stroke-width: 8;
+}
+
+.gauge-fill {
+    fill: none;
+    stroke: #ffd740;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: center;
+}
+
+.gauge-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    fill: var(--text-primary);
+    text-anchor: middle;
+    dominant-baseline: central;
+}
+
+.gauge-label {
+    font-family: 'Inter', sans-serif;
+    font-size: 10px;
+    fill: var(--text-muted);
+    text-anchor: middle;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Signal Breakdown */
+.xray-signals {
+    flex: 1;
+    min-width: 0;
+}
+
+.xray-signals h4 {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 12px;
+}
+
+.signal-bar-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.signal-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.signal-label {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    width: 100px;
+    flex-shrink: 0;
+}
+
+.signal-bar {
+    flex: 1;
+    height: 8px;
+    background: var(--border-subtle);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.signal-fill {
+    height: 100%;
+    width: 0;
+    border-radius: 4px;
+    background: var(--accent-gradient);
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.signal-fill-inverse {
+    background: linear-gradient(135deg, #f59e0b, #ef4444) !important;
+}
+
+.signal-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    width: 36px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+/* X-Ray Sections */
+.xray-section {
+    margin-bottom: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-subtle);
+}
+
+.xray-section h4 {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 10px;
+}
+
+/* Table Tags */
+.xray-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.xray-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: rgba(138, 43, 226, 0.08);
+    color: var(--accent-1);
+    border: 1px solid rgba(138, 43, 226, 0.2);
+}
+
+/* Ambiguity Cards */
+.xray-ambiguity-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ambiguity-card {
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: rgba(245, 158, 11, 0.06);
+    border: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+.ambiguity-term {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #e65100;
+    margin-bottom: 6px;
+}
+
+.ambiguity-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-right: 6px;
+}
+
+.ambiguity-interpretation {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+}
+
+.ambiguity-alternatives {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+}
+
+.alt-chip {
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(138, 43, 226, 0.08);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+}
+
+/* Assumptions */
+.xray-assumptions-list {
+    margin: 0;
+    padding-left: 18px;
+    list-style: none;
+}
+
+.xray-assumptions-list li {
+    position: relative;
+    padding-left: 8px;
+    margin-bottom: 6px;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.xray-assumptions-list li::before {
+    content: "→";
+    position: absolute;
+    left: -14px;
+    color: var(--accent-2);
+    font-weight: 600;
+}
+
+/* Explanation */
+.xray-explanation {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    font-style: italic;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-subtle);
+    line-height: 1.5;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   Clarification Panel
+   ═══════════════════════════════════════════════════════════════ */
+
+.clarification-panel {
+    margin-bottom: 20px;
+    border: 2px solid rgba(245, 158, 11, 0.3);
+    background: rgba(245, 158, 11, 0.04);
+    padding: 24px;
+}
+
+.clarification-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.clarification-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(245, 158, 11, 0.12);
+    color: #e65100;
+}
+
+.clarification-header h3 {
+    margin: 0 0 4px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #e65100;
+}
+
+.clarification-header p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.clarification-questions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.clarification-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border: 1px solid var(--border-glass);
+    border-radius: 10px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    font-family: 'Inter', sans-serif;
+}
+
+.clarification-chip:hover {
+    background: var(--bg-card-hover);
+    border-color: var(--accent-1);
+    box-shadow: var(--shadow-md);
+    transform: translateX(4px);
+}
+
+.clarification-chip svg {
+    color: var(--accent-1);
+    flex-shrink: 0;
+}
+
+.clarification-custom {
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--text-muted);
 }

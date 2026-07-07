@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     QUERY_TIMEOUT_SECONDS: int = 10
     MAX_RESULT_ROWS: int = 100
 
+    # --- Confidence Analysis ---
+    CONFIDENCE_THRESHOLD: int = 70       # Below this, trigger clarification
+    ENABLE_CONFIDENCE_ANALYSIS: bool = True  # Feature flag to toggle
+
     # --- Server ---
     HOST: str = "0.0.0.0"
     PORT: int = 8000

@@ -14,6 +14,7 @@ from app.graph.nodes.router import route_query
 from app.graph.nodes.schema_retriever import retrieve_schema
 from app.graph.nodes.fewshot_retriever import retrieve_fewshots
 from app.graph.nodes.sql_generator import generate_sql
+from app.graph.nodes.confidence_analyzer import analyze_confidence
 from app.graph.nodes.sql_validator import validate_sql
 from app.graph.nodes.sql_corrector import correct_sql
 from app.graph.nodes.sql_executor import execute_sql
@@ -53,6 +54,13 @@ def _should_continue_after_executor(state: dict) -> str:
     return "correct_sql"
 
 
+def _should_continue_after_confidence(state: dict) -> str:
+    """Decide where to go after confidence analysis."""
+    if state.get("needs_clarification"):
+        return "format_response"
+    return "validate_sql"
+
+
 def build_graph() -> StateGraph:
     """
     Build and compile the NL2SQL LangGraph pipeline.
@@ -74,6 +82,7 @@ def build_graph() -> StateGraph:
     builder.add_node("retrieve_schema", retrieve_schema)
     builder.add_node("retrieve_fewshots", retrieve_fewshots)
     builder.add_node("generate_sql", generate_sql)
+    builder.add_node("confidence_analyzer", analyze_confidence)
     builder.add_node("validate_sql", validate_sql)
     builder.add_node("correct_sql", correct_sql)
     builder.add_node("execute_sql", execute_sql)
@@ -97,7 +106,17 @@ def build_graph() -> StateGraph:
     # Linear pipeline: schema → fewshots → generate → validate
     builder.add_edge("retrieve_schema", "retrieve_fewshots")
     builder.add_edge("retrieve_fewshots", "generate_sql")
-    builder.add_edge("generate_sql", "validate_sql")
+    builder.add_edge("generate_sql", "confidence_analyzer")
+
+    # Confidence gate: proceed or ask for clarification
+    builder.add_conditional_edges(
+        "confidence_analyzer",
+        _should_continue_after_confidence,
+        {
+            "validate_sql": "validate_sql",
+            "format_response": "format_response",
+        },
+    )
 
     # Validator → execute OR correct OR give up
     builder.add_conditional_edges(

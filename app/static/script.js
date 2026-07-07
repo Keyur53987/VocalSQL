@@ -60,6 +60,18 @@ const dom = {
     addDbForm:         $('#addDbForm'),
     registeredDbList:  $('#registeredDbList'),
     toastContainer:    $('#toastContainer'),
+    // Confidence X-Ray
+    confidencePanel:   $('#confidencePanel'),
+    xrayToggle:        $('#xrayToggle'),
+    xrayBody:          $('#xrayBody'),
+    xrayChevron:       $('#xrayChevron'),
+    xrayRiskBadge:     $('#xrayRiskBadge'),
+    xrayScoreMini:     $('#xrayScoreMini'),
+    gaugeFill:         $('#gaugeFill'),
+    gaugeText:         $('#gaugeText'),
+    // Clarification
+    clarificationPanel: $('#clarificationPanel'),
+    clarificationQuestions: $('#clarificationQuestions'),
 };
 
 // ══════════════════════════════════════════════════════════════════
@@ -223,6 +235,12 @@ function renderResult(result) {
     // Hide loading
     dom.loadingState.style.display = 'none';
 
+    // Handle clarification mode
+    if (result.needs_clarification && result.clarification_questions) {
+        renderClarificationUI(result);
+        return;
+    }
+
     if (result.success) {
         // Show NL summary
         if (result.natural_language_response) {
@@ -237,6 +255,11 @@ function renderResult(result) {
             dom.nlContent.innerHTML = safeHtml;
         }
 
+        // Show Confidence X-Ray
+        if (result.confidence_report) {
+            renderConfidenceReport(result.confidence_report);
+        }
+
         // Show SQL
         showSqlOutput(result);
 
@@ -249,6 +272,11 @@ function renderResult(result) {
         dom.feedbackSection.style.display = 'block';
         dom.correctionInput.style.display = 'none';
     } else {
+        // Show Confidence X-Ray even on failure
+        if (result.confidence_report) {
+            renderConfidenceReport(result.confidence_report);
+        }
+
         // Show error
         showError(result.error || 'Unknown error occurred.');
 
@@ -315,6 +343,8 @@ function showSection(which) {
     dom.errorOutput.style.display = 'none';
     dom.dataOutput.style.display = 'none';
     dom.feedbackSection.style.display = 'none';
+    dom.confidencePanel.style.display = 'none';
+    dom.clarificationPanel.style.display = 'none';
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -322,7 +352,7 @@ function showSection(which) {
 // ══════════════════════════════════════════════════════════════════
 
 function animateLoadingSteps() {
-    const steps = ['stepRouter', 'stepRetrieval', 'stepGenerate', 'stepValidate', 'stepExecute'];
+    const steps = ['stepRouter', 'stepRetrieval', 'stepGenerate', 'stepConfidence', 'stepValidate', 'stepExecute'];
     let current = 0;
 
     // Reset all steps
@@ -543,6 +573,208 @@ async function reindexDb(dbId) {
         showToast(`Failed: ${e.message}`, 'error');
     }
 }
+
+// ══════════════════════════════════════════════════════════════════
+// Confidence X-Ray Rendering
+// ══════════════════════════════════════════════════════════════════
+
+function renderConfidenceReport(report) {
+    if (!report) return;
+
+    dom.confidencePanel.style.display = 'block';
+
+    const score = report.confidence_score || 0;
+    const risk = report.risk_level || 'medium';
+
+    // Risk badge
+    const riskColors = { low: '#69f0ae', medium: '#ffd740', high: '#ff5252' };
+    const riskLabels = { low: 'Low Risk', medium: 'Medium Risk', high: 'High Risk' };
+    dom.xrayRiskBadge.textContent = riskLabels[risk] || 'Unknown';
+    dom.xrayRiskBadge.className = `xray-risk-badge risk-${risk}`;
+
+    // Mini score
+    dom.xrayScoreMini.textContent = `${score}%`;
+    dom.xrayScoreMini.style.color = riskColors[risk];
+
+    // Animate gauge
+    animateGauge(score, risk);
+
+    // Signal bars
+    const signals = report.signals || {};
+    renderSignalBar('signalLLM', 'signalLLMVal', signals.llm_self_score || 0);
+    renderSignalBar('signalSchema', 'signalSchemaVal', signals.schema_coverage || 0);
+    renderSignalBar('signalFewshot', 'signalFewshotVal', signals.fewshot_similarity || 0);
+    renderSignalBar('signalComplexity', 'signalComplexityVal', signals.query_complexity || 0, true);
+
+    // Tables
+    const tables = report.tables_identified || [];
+    const tablesSection = $('#xrayTablesSection');
+    if (tables.length > 0) {
+        tablesSection.style.display = 'block';
+        $('#xrayTables').innerHTML = tables.map(t =>
+            `<span class="xray-tag">${escapeHtml(t)}</span>`
+        ).join('');
+    } else {
+        tablesSection.style.display = 'none';
+    }
+
+    // Ambiguous terms
+    const ambiguous = report.ambiguous_terms || [];
+    const ambiguitySection = $('#xrayAmbiguitySection');
+    if (ambiguous.length > 0) {
+        ambiguitySection.style.display = 'block';
+        $('#xrayAmbiguityCards').innerHTML = ambiguous.map(term => `
+            <div class="ambiguity-card">
+                <div class="ambiguity-term">"${escapeHtml(term.term)}"</div>
+                <div class="ambiguity-interpretation">
+                    <span class="ambiguity-label">Interpreted as:</span>
+                    ${escapeHtml(term.interpretation)}
+                </div>
+                ${term.alternatives && term.alternatives.length > 0 ? `
+                    <div class="ambiguity-alternatives">
+                        <span class="ambiguity-label">Could also mean:</span>
+                        ${term.alternatives.map(a => `<span class="alt-chip">${escapeHtml(a)}</span>`).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        `).join('');
+    } else {
+        ambiguitySection.style.display = 'none';
+    }
+
+    // Assumptions
+    const assumptions = report.assumptions_made || [];
+    const assumptionsSection = $('#xrayAssumptionsSection');
+    if (assumptions.length > 0) {
+        assumptionsSection.style.display = 'block';
+        $('#xrayAssumptions').innerHTML = assumptions.map(a =>
+            `<li>${escapeHtml(a)}</li>`
+        ).join('');
+    } else {
+        assumptionsSection.style.display = 'none';
+    }
+
+    // Explanation
+    const explanation = report.explanation || '';
+    const explanationEl = $('#xrayExplanation');
+    if (explanation) {
+        explanationEl.style.display = 'block';
+        explanationEl.textContent = explanation;
+    } else {
+        explanationEl.style.display = 'none';
+    }
+
+    // Start expanded for medium/high risk, collapsed for low
+    const body = dom.xrayBody;
+    const chevron = dom.xrayChevron;
+    if (risk === 'low') {
+        body.classList.add('collapsed');
+        chevron.classList.add('collapsed');
+    } else {
+        body.classList.remove('collapsed');
+        chevron.classList.remove('collapsed');
+    }
+}
+
+
+function animateGauge(score, risk) {
+    const circle = dom.gaugeFill;
+    const text = dom.gaugeText;
+    const circumference = 2 * Math.PI * 52; // r=52
+    const offset = circumference - (score / 100) * circumference;
+
+    // Set stroke color based on risk
+    const colors = { low: '#69f0ae', medium: '#ffd740', high: '#ff5252' };
+    circle.style.stroke = colors[risk] || '#ffd740';
+    circle.style.filter = `drop-shadow(0 0 6px ${colors[risk]}40)`;
+
+    // Animate
+    circle.style.strokeDasharray = `${circumference}`;
+    circle.style.strokeDashoffset = `${circumference}`; // Start empty
+
+    requestAnimationFrame(() => {
+        circle.style.transition = 'stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
+        circle.style.strokeDashoffset = `${offset}`;
+    });
+
+    // Animate counter
+    let current = 0;
+    const duration = 1200;
+    const start = performance.now();
+    function tick(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+        current = Math.round(eased * score);
+        text.textContent = `${current}%`;
+        if (progress < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+}
+
+
+function renderSignalBar(fillId, valId, value, inverse = false) {
+    const fill = $(`#${fillId}`);
+    const val = $(`#${valId}`);
+    const pct = Math.round(value * 100);
+
+    val.textContent = `${pct}%`;
+
+    requestAnimationFrame(() => {
+        fill.style.transition = 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)';
+        fill.style.width = `${pct}%`;
+    });
+}
+
+
+function renderClarificationUI(result) {
+    dom.clarificationPanel.style.display = 'block';
+
+    // Show confidence report if available
+    if (result.confidence_report) {
+        renderConfidenceReport(result.confidence_report);
+    }
+
+    // Show the generated SQL (dimmed)
+    if (result.generated_sql) {
+        showSqlOutput(result);
+    }
+
+    // Render question chips
+    const questions = result.clarification_questions || [];
+    dom.clarificationQuestions.innerHTML = questions.map(q => `
+        <button class="clarification-chip" onclick="useClarification('${escapeHtml(q).replace(/'/g, "\\'")}')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <polyline points="9 18 15 12 9 6"/>
+            </svg>
+            ${escapeHtml(q)}
+        </button>
+    `).join('');
+}
+
+
+function useClarification(question) {
+    dom.queryInput.value = question;
+    executeQuery();
+}
+
+
+// X-Ray toggle (collapse/expand)
+document.addEventListener('DOMContentLoaded', () => {
+    // Defer to ensure element exists
+    setTimeout(() => {
+        const toggle = document.getElementById('xrayToggle');
+        if (toggle) {
+            toggle.addEventListener('click', () => {
+                const body = document.getElementById('xrayBody');
+                const chevron = document.getElementById('xrayChevron');
+                body.classList.toggle('collapsed');
+                chevron.classList.toggle('collapsed');
+            });
+        }
+    }, 0);
+});
+
 
 // ══════════════════════════════════════════════════════════════════
 // Utilities

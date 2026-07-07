@@ -10,6 +10,7 @@
 - 🧠 **LangGraph State Machine** — 7-node agentic pipeline with self-correction loops
 - 📚 **RAG-Powered Context** — Schema & few-shot retrieval via ChromaDB (local, free)
 - 🤖 **Groq Llama 3.3** — Blazing fast, free-tier LLM with deterministic output
+- 🔍 **Confidence & Ambiguity X-Ray** — Dual-path confidence scoring with interactive clarification UI
 - ✅ **9-Layer Anti-Hallucination** — Syntax validation, schema compliance, safety guards
 - 🔄 **Self-Correction Loop** — Automatic SQL repair (up to 3 retries)
 - 🗄️ **Multi-Database Support** — Connect any SQLite, PostgreSQL, or MySQL database
@@ -68,7 +69,10 @@ graph TD
     Router --> FewShotR[Few-Shot Retriever <br/><i>RAG</i>]
     SchemaR --> Generator
     FewShotR --> Generator
-    Generator[SQL Generator <br/><i>Groq Llama 3</i>] --> Validator[SQL Validator]
+    Generator[SQL Generator <br/><i>Groq Llama 3</i>] --> Analyzer[Confidence Analyzer]
+    Analyzer -- "High Confidence" --> Validator[SQL Validator]
+    Analyzer -- "Low Confidence" --> Clarify([Ask for Clarification])
+    Clarify -. "Updated Query" .-> Router
     Validator -- "Valid" --> Executor[SQL Executor]
     Validator -- "Invalid" --> Corrector[SQL Corrector]
     Corrector --> Validator

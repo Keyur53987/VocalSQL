@@ -44,6 +44,11 @@ class NL2SQLState(TypedDict, total=False):
     # ── Self-Correction Loop ─────────────────────────────────────
     correction_attempts: int # Number of correction attempts so far
 
+    # ── Confidence & Ambiguity Analysis ──────────────────────────
+    confidence_report: dict  # Full confidence analysis report
+    needs_clarification: bool # Whether to pause and ask the user for clarification
+    clarification_questions: list  # Suggested questions if clarification needed
+
     # ── Final Output ─────────────────────────────────────────────
     final_response: dict     # The complete response to return to the user
     error_message: str       # Error message for failed/blocked queries

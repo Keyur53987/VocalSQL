@@ -15,6 +15,10 @@ class QueryResponse(BaseModel):
     intent: Optional[str] = None
     correction_attempts: int = 0
     execution_time_ms: Optional[float] = None
+    # Confidence & Ambiguity Analysis
+    confidence_report: Optional[dict] = None
+    needs_clarification: bool = False
+    clarification_questions: Optional[list] = None
 
 
 class DatabaseInfo(BaseModel):

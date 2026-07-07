@@ -110,11 +110,11 @@
                     </div>
                     <div class="query-suggestions">
                         <span class="suggestion-label">Try:</span>
-                        <button class="suggestion-chip" data-query="How many customers do we have in each country?">Customers by country</button>
-                        <button class="suggestion-chip" data-query="What are the top 5 best-selling products by revenue?">Top products</button>
-                        <button class="suggestion-chip" data-query="Show me the average order value by month for the last year">Monthly AOV</button>
-                        <button class="suggestion-chip" data-query="Which customers have never placed an order?">Inactive customers</button>
-                        <button class="suggestion-chip" data-query="What is the total revenue per product category?">Revenue by category</button>
+                        <button class="suggestion-chip" data-query="What is the total revenue and total quantity sold for products in the 'Smartphones' category?">Clear & Specific</button>
+                        <button class="suggestion-chip" data-query="Show me our top 5 best products.">Ambiguous (Medium Risk)</button>
+                        <button class="suggestion-chip" data-query="Which warehouses are running low on stock for popular items?">Low Stock (Medium Risk)</button>
+                        <button class="suggestion-chip" data-query="How have our recent sales been doing for our good suppliers?">Vague (High Risk)</button>
+                        <button class="suggestion-chip" data-query="Are we making more money from active promotions or regular sales?">Complex (High Risk)</button>
                     </div>
                 </div>
             </div>
@@ -139,6 +139,9 @@
                             <div class="step" id="stepGenerate">
                                 <span class="step-icon">🤖</span> Generating SQL...
                             </div>
+                            <div class="step" id="stepConfidence">
+                                <span class="step-icon">🔍</span> Analyzing confidence...
+                            </div>
                             <div class="step" id="stepValidate">
                                 <span class="step-icon">✅</span> Validating query...
                             </div>
@@ -151,6 +154,103 @@
                 <!-- Natural Language Output -->
                 <div class="nl-output glass-card" id="nlOutput" style="display: none; margin-bottom: 20px;">
                     <div class="nl-content" id="nlContent" style="font-size: 1.1rem; line-height: 1.5;"></div>
+                </div>
+
+                <!-- Clarification UI (shown when confidence is too low) -->
+                <div class="clarification-panel glass-card" id="clarificationPanel" style="display: none;">
+                    <div class="clarification-header">
+                        <div class="clarification-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                                <line x1="12" y1="17" x2="12.01" y2="17"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h3>Clarification Needed</h3>
+                            <p>Your question is ambiguous. Please clarify to get a more accurate result:</p>
+                        </div>
+                    </div>
+                    <div class="clarification-questions" id="clarificationQuestions"></div>
+                    <div class="clarification-custom">
+                        <span>Or rephrase your question above and try again.</span>
+                    </div>
+                </div>
+
+                <!-- Confidence X-Ray Panel -->
+                <div class="confidence-xray glass-card" id="confidencePanel" style="display: none;">
+                    <div class="xray-header" id="xrayToggle">
+                        <div class="xray-header-left">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            <h3>Confidence X-Ray</h3>
+                            <span class="xray-risk-badge" id="xrayRiskBadge"></span>
+                        </div>
+                        <div class="xray-header-right">
+                            <span class="xray-score-mini" id="xrayScoreMini"></span>
+                            <svg class="xray-chevron" id="xrayChevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                                <polyline points="6 9 12 15 18 9"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="xray-body" id="xrayBody">
+                        <div class="xray-top-row">
+                            <!-- Radial Gauge -->
+                            <div class="xray-gauge-container">
+                                <svg class="xray-gauge" viewBox="0 0 120 120" id="xrayGaugeSvg">
+                                    <circle class="gauge-bg" cx="60" cy="60" r="52" />
+                                    <circle class="gauge-fill" cx="60" cy="60" r="52" id="gaugeFill" />
+                                    <text class="gauge-text" x="60" y="55" id="gaugeText">0%</text>
+                                    <text class="gauge-label" x="60" y="72">confidence</text>
+                                </svg>
+                            </div>
+                            <!-- Signal Breakdown -->
+                            <div class="xray-signals">
+                                <h4>Signal Breakdown</h4>
+                                <div class="signal-bar-group">
+                                    <div class="signal-row">
+                                        <span class="signal-label">LLM Self-Score</span>
+                                        <div class="signal-bar"><div class="signal-fill" id="signalLLM"></div></div>
+                                        <span class="signal-value" id="signalLLMVal"></span>
+                                    </div>
+                                    <div class="signal-row">
+                                        <span class="signal-label">Schema Match</span>
+                                        <div class="signal-bar"><div class="signal-fill" id="signalSchema"></div></div>
+                                        <span class="signal-value" id="signalSchemaVal"></span>
+                                    </div>
+                                    <div class="signal-row">
+                                        <span class="signal-label">Few-Shot Sim.</span>
+                                        <div class="signal-bar"><div class="signal-fill" id="signalFewshot"></div></div>
+                                        <span class="signal-value" id="signalFewshotVal"></span>
+                                    </div>
+                                    <div class="signal-row">
+                                        <span class="signal-label">Complexity</span>
+                                        <div class="signal-bar"><div class="signal-fill signal-fill-inverse" id="signalComplexity"></div></div>
+                                        <span class="signal-value" id="signalComplexityVal"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Tables Identified -->
+                        <div class="xray-section" id="xrayTablesSection" style="display:none;">
+                            <h4>Tables Identified</h4>
+                            <div class="xray-tags" id="xrayTables"></div>
+                        </div>
+                        <!-- Ambiguous Terms -->
+                        <div class="xray-section" id="xrayAmbiguitySection" style="display:none;">
+                            <h4>⚠️ Ambiguous Terms</h4>
+                            <div class="xray-ambiguity-cards" id="xrayAmbiguityCards"></div>
+                        </div>
+                        <!-- Assumptions -->
+                        <div class="xray-section" id="xrayAssumptionsSection" style="display:none;">
+                            <h4>Assumptions Made</h4>
+                            <ul class="xray-assumptions-list" id="xrayAssumptions"></ul>
+                        </div>
+                        <!-- Explanation -->
+                        <div class="xray-explanation" id="xrayExplanation"></div>
+                    </div>
                 </div>
 
                 <!-- SQL Output -->

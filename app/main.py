@@ -177,6 +177,9 @@ async def query_database(request: QueryRequest):
         intent=final.get("intent"),
         correction_attempts=final.get("correction_attempts", 0),
         execution_time_ms=round(elapsed, 1),
+        confidence_report=final.get("confidence_report"),
+        needs_clarification=final.get("needs_clarification", False),
+        clarification_questions=final.get("clarification_questions"),
     )
 
 

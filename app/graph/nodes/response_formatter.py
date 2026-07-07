@@ -15,7 +15,7 @@ def format_response(state: dict) -> dict:
     Build the final response from the pipeline state.
 
     Handles success, validation failure, execution failure,
-    blocked queries, and unclear queries.
+    blocked queries, unclear queries, and clarification requests.
     """
     intent = state.get("intent", "")
     error_message = state.get("error_message", "")
@@ -24,6 +24,9 @@ def format_response(state: dict) -> dict:
     execution_error = state.get("execution_error", "")
     validation_errors = state.get("validation_errors", [])
     correction_attempts = state.get("correction_attempts", 0)
+    confidence_report = state.get("confidence_report")
+    needs_clarification = state.get("needs_clarification", False)
+    clarification_questions = state.get("clarification_questions", [])
 
     # ── Case 1: Blocked or unclear query ─────────────────────────
     if intent in ("blocked", "unclear") or (error_message and not generated_sql):
@@ -35,6 +38,26 @@ def format_response(state: dict) -> dict:
                 "results": None,
                 "intent": intent,
                 "correction_attempts": correction_attempts,
+                "confidence_report": None,
+                "needs_clarification": False,
+                "clarification_questions": None,
+            }
+        }
+
+    # ── Case 1.5: Needs clarification (confidence too low) ───────
+    if needs_clarification and clarification_questions:
+        return {
+            "final_response": {
+                "success": False,
+                "error": None,
+                "generated_sql": generated_sql,
+                "natural_language_response": None,
+                "results": None,
+                "intent": intent,
+                "correction_attempts": correction_attempts,
+                "confidence_report": confidence_report,
+                "needs_clarification": True,
+                "clarification_questions": clarification_questions,
             }
         }
 
@@ -86,6 +109,9 @@ def format_response(state: dict) -> dict:
                 "results": execution_result,
                 "intent": intent,
                 "correction_attempts": correction_attempts,
+                "confidence_report": confidence_report,
+                "needs_clarification": False,
+                "clarification_questions": None,
             }
         }
 
@@ -102,6 +128,9 @@ def format_response(state: dict) -> dict:
                 "results": None,
                 "intent": intent,
                 "correction_attempts": correction_attempts,
+                "confidence_report": confidence_report,
+                "needs_clarification": False,
+                "clarification_questions": None,
             }
         }
 
@@ -118,6 +147,9 @@ def format_response(state: dict) -> dict:
                 "results": None,
                 "intent": intent,
                 "correction_attempts": correction_attempts,
+                "confidence_report": confidence_report,
+                "needs_clarification": False,
+                "clarification_questions": None,
             }
         }
 
@@ -130,5 +162,8 @@ def format_response(state: dict) -> dict:
             "results": None,
             "intent": intent,
             "correction_attempts": correction_attempts,
+            "confidence_report": confidence_report,
+            "needs_clarification": False,
+            "clarification_questions": None,
         }
     }

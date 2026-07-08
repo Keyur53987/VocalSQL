@@ -24,14 +24,23 @@ class DatabaseManager:
         self._engines: Dict[str, Engine] = {}
         self._lock = threading.Lock()
         self._configs: Dict[str, dict] = {}
+        self._last_mtime = 0.0
         self._load_configs()
 
     # ── Configuration Persistence ─────────────────────────────────
+
+    def _check_reload(self):
+        """Check if the config file was modified by another worker and reload."""
+        if os.path.exists(self.config_path):
+            current_mtime = os.path.getmtime(self.config_path)
+            if current_mtime > self._last_mtime:
+                self._load_configs()
 
     def _load_configs(self):
         """Load database configurations from JSON file."""
         if os.path.exists(self.config_path):
             try:
+                self._last_mtime = os.path.getmtime(self.config_path)
                 with open(self.config_path, "r") as f:
                     self._configs = json.load(f)
                 logger.info(f"Loaded {len(self._configs)} database config(s)")
@@ -92,18 +101,21 @@ class DatabaseManager:
 
     def list_databases(self) -> Dict[str, dict]:
         """List all registered databases (without connection strings)."""
+        self._check_reload()
         return {
             db_id: {"name": cfg["name"], "description": cfg["description"]}
             for db_id, cfg in self._configs.items()
         }
 
     def has_database(self, db_id: str) -> bool:
+        self._check_reload()
         return db_id in self._configs
 
     # ── Engine Management ─────────────────────────────────────────
 
     def get_engine(self, db_id: str) -> Engine:
         """Get or create a SQLAlchemy engine for the given database."""
+        self._check_reload()
         if db_id not in self._engines:
             with self._lock:
                 if db_id not in self._engines:
